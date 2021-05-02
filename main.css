@@ -1,0 +1,12 @@
+html, body {
+	padding: 0;
+	margin: 0;
+}
+
+#canvas_container, #canvas_container2 {
+	margin: 0;
+	width: 40vw;
+	height: 60vh;
+	border: 1px solid green;
+	display: inline;
+}

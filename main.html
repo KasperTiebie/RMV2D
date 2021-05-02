@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+	<title> RMV2D </title>
+	<head>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" href="main.css">
+		<script type="text/javascript" src="http://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+		<script type="text/javascript" src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+		<script src="https://static.robotwebtools.org/EaselJS/current/easeljs.js"></script>
+		<script type="text/javascript" src="RMV2D.js"></script>
+		<!-- JQuery -->
+		<script type="text/javascript" src="jquery-3.5.1.js"></script>
+	</head>
+	<body>
+		<div id="canvas_container"></div>
+		<div id="canvas_container2"></div>
+	</body>
+	<script type="text/javascript">
+		// Connecting to ROS
+		var ros = new ROSLIB.Ros({
+		  url : 'ws://192.168.178.109:9090'
+		});
+
+		ros.on('connection', function() {
+		  console.log('Connected to websocket server.');
+		});
+
+		ros.on('error', function(error) {
+		  console.log('Error connecting to websocket server: ', error);
+		});
+
+		ros.on('close', function() {
+		  console.log('Connection to websocket server closed.');
+		});
+
+		canvasView = new RMV2D.Viewer({
+			width : $("#canvas_container").width(),
+			height: $("#canvas_container").height(),
+			divID : "canvas_container",
+			background : "#333333"
+		});
+
+		gridClient = new RMV2D.OccupancyGridClient({
+			ros : ros,
+			rootObject : canvasView.scene,
+			continuous : true
+		});
+
+		navigationClient = new RMV2D.NavigationClient({
+			ros : ros,
+			rootObject : canvasView.scene,
+			occupancyGridClient : gridClient,
+			serverName : "/move_base",
+			actionName : "move_base_msgs/MoveBaseAction"
+		})
+
+		canvasView2 = new RMV2D.Viewer({
+			width : $("#canvas_container2").width(),
+			height: $("#canvas_container2").height(),
+			divID : "canvas_container2",
+			background : "#333333",
+			enableZoom : true,
+			enablePan : true
+		});
+
+		gridClient2 = new RMV2D.OccupancyGridClient({
+			ros : ros,
+			rootObject : canvasView2.scene,
+			continuous : true
+		});
+
+		poseClient2 = new RMV2D.PoseClient({
+			ros : ros,
+			rootObject : canvasView2.scene,
+			imageSrc : "dog_top.png",
+			topic : "/robot_pose",
+			resolution : 0.05,
+			trackPose : true,
+			trackOrientation : false
+		});
+
+		navigationClient2 = new RMV2D.NavigationClient({
+			ros : ros,
+			rootObject : canvasView2.scene,
+			occupancyGridClient : gridClient2,
+			serverName : "/move_base",
+			actionName : "move_base_msgs/MoveBaseAction"
+		})
+	</script>
+</html>
