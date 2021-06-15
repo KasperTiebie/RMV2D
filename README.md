@@ -44,6 +44,13 @@ The OccupancyGridClient takes the ROS *nav_msgs/OccupancyGrid* messages and disp
 * **rootObject (required)**: The *scene* object of the *ROS2D.Viewer* object to display the map in
 * **mapTopic (optional)**: The topic that the OccupancyGrid is published on. Defaults to *'/map'*
 
+#### Functions
+#####zoom(scale)
+Zooms the viewport to the specified zoom level
+
+####pan(positionX, positionY)
+Pans the viewport to the specified coordinates
+
 #### Example
 ```javascript
 var occupancyGridClient = new RMV2D.OccupancyGridClient({
@@ -110,6 +117,9 @@ The HeatmapClient enables drawing a heatmap over the map. This object uses the *
 #####setData(options)
 This function generates a heatmap with the given data and displays it in the Viewer. 
 
+#####clear()
+This function clears the heatmap
+
 ###### Example
 ```javascript
 var heatmapClient = new RMV2D.HeatmapClient({
@@ -117,8 +127,23 @@ var heatmapClient = new RMV2D.HeatmapClient({
 });
 
 var dataPoints = {
-  
+  data: [],
+  max: 0
 }
 
+for(var i=0;i<100;i++){
+  var point = {
+    x: Math.random()*10,
+    y Math.random()*10,
+    value: Math.random()*50
+  };
+  if(dataPoints.max < point.value){
+    dataPoints.max = point.value;
+  }
+  dataPoints.push(point);
+}
+
+heatmapClient.setData(dataPoints);
+```
 
 
