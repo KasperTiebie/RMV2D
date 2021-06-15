@@ -1,5 +1,5 @@
 var RMV2D = RMV2D || {
-  REVISION : '0.0.1'
+  REVISION : '1.0.0'
 };
 
 // convert a ROS quaternion to theta in degrees
@@ -54,12 +54,8 @@ RMV2D.Viewer = function(options){
 	}
 
 	this.scene.pan = function(positionX, positionY){
-		// The reason we use the registration point for this is so that the rotation is also correct
-		this.regX = positionX;
-		this.regY = positionY;
 		this.x = positionX;
 		this.y = positionY;
-		//console.log(this.regX + ", " + this.regY);
 	}
 
 	// Event listener for the panning of the map
@@ -70,7 +66,6 @@ RMV2D.Viewer = function(options){
 			startY = this.y;
 			startMouseX = event.rawX;
 			startMouseY = event.rawY;
-			console.log(startMouseX);
 		});
 
 		this.scene.on("stagemousemove", function(event) {
@@ -87,16 +82,16 @@ RMV2D.Viewer = function(options){
 
 	if(enableZoom){
 		canvas.addEventListener("wheel", function(event){
-			var mouseX = event.layerX - that.scene.regX; //Mouse position relative to 0,0. Easel always zooms towards 0,0. That's why a translation is also necessary in order to zoom towards the cursor
-			var mouseY = event.layerY - that.scene.regY;
-			if(event.deltaY === 100){ // Zoom out
-				that.scene.regX -= mouseX/1.1 - mouseX;  
-				that.scene.regY -= mouseY/1.1 - mouseY;
+			var mouseX = event.layerX - that.scene.x; //Mouse position relative to 0,0. Easel always zooms towards 0,0. That's why a translation is also necessary in order to zoom towards the cursor
+			var mouseY = event.layerY - that.scene.y;
+			if(event.deltaY >= 0){ // Zoom out
+				that.scene.x -= mouseX/1.1 - mouseX;  
+				that.scene.y -= mouseY/1.1 - mouseY;
 				that.scene.scaleX /= 1.1;
 				that.scene.scaleY /= 1.1;
-			}else if(event.deltaY === -100){ // Zoom in
-				that.scene.regX -= mouseX*1.1 - mouseX;
-				that.scene.regY -= mouseY*1.1 - mouseY;
+			}else if(event.deltaY <= 0){ // Zoom in
+				that.scene.x -= mouseX*1.1 - mouseX;
+				that.scene.y -= mouseY*1.1 - mouseY;
 				that.scene.scaleX *= 1.1;
 				that.scene.scaleY *= 1.1;
 			}
@@ -238,22 +233,26 @@ RMV2D.PoseClient = function(options) {
 		if(that.trackPose){
 			// Calculate the position in order the keep the pose centered
 			// The incoming position is in meters. The viewport is based on it's scale, so a small conversion has to be done
-			var positionX = poseImageObject.regX;// - ((that.rootObject.canvas.width/that.rootObject.scaleX)/2); //*that.rootObject.scaleX + that.rootObject.canvas.width/2;
-			var positionY = -poseImageObject.regY;// - ((that.rootObject.canvas.height/that.rootObject.scaleY)/2);//*that.rootObject.scaleY + that.rootObject.canvas.height/2;
+			var positionX = -(message.position.x - (that.rootObject.canvas.width/that.rootObject.scaleX)/2)*that.rootObject.scaleX;
+			var positionY = -(-message.position.y - (that.rootObject.canvas.height/that.rootObject.scaleY)/2)*that.rootObject.scaleY;
 			that.rootObject.pan(positionX, positionY);
 		}
 
 		if(that.trackOrientation){
 			var orientation = rosQuaternionToGlobalTheta(message.orientation);
 			that.rootObject.rotation = 270-orientation;
+			that.rootObject.regX = message.position.x; //Set the registration point equal to the center of the dog. This way the map rotates around the dog
+			that.rootObject.regY = -message.position.y;
+			that.rootObject.x += message.position.x*that.rootObject.scaleX; //Because of the change in the registration point, another transformation has to be done
+			that.rootObject.y += -message.position.y*that.rootObject.scaleY;
 		}
 
 		that.emit("change");
 	});
 
 	this.panToPose = function(){
-		var positionX = this.poseImage.x - ((this.rootObject.canvas.width/this.rootObject.scaleX)/2);
-		var positionY = this.poseImage.y - ((this.rootObject.canvas.height/this.rootObject.scaleY)/2);
+		var positionX = -(this.poseImage.x - (this.rootObject.canvas.width/this.rootObject.scaleX)/2)*this.rootObject.scaleX;
+		var positionY = -(this.poseImage.y - (this.rootObject.canvas.height/this.rootObject.scaleY)/2)*this.rootObject.scaleY;
 		this.rootObject.pan(positionX, positionY);
 	}
 };
@@ -290,7 +289,7 @@ RMV2D.NavigationImage = function(options) {
 			if (growing) {
 				that.scaleX *= 1.01;
 				that.scaleY *= 1.01;
-				growing = (++growCount < 10);
+				growing = (++growCount < 15);
 			} else {
 				that.scaleX /= 1.01;
 				that.scaleY /= 1.01;
@@ -301,11 +300,14 @@ RMV2D.NavigationImage = function(options) {
 };
 RMV2D.NavigationImage.prototype.__proto__ = createjs.Bitmap.prototype;
 
+
+// The navigationclient isn't supposed 
 RMV2D.NavigationClient = function(options){
 	var that = this;
 	var ros = options.ros;
 	this.rootObject = options.rootObject || new createjs.Container();
 	this.occupancyGridClient = options.occupancyGridClient;
+	var imageSrc = options.imageSrc || "goalMarker.png";
 	var serverName = options.serverName || "/move_base";
   	var actionName = options.actionName || "move_base_msgs/MoveBaseAction";
 	var doubleClick = false;
@@ -334,7 +336,7 @@ RMV2D.NavigationClient = function(options){
 
 			that.goalImage = new RMV2D.NavigationImage({
 				size : 0.3,
-				imageSrc : "goalMarker.png",
+				imageSrc : imageSrc,
 				pulse : false,
 				alpha : 0.8,
 				positionX : positionX,
@@ -352,7 +354,7 @@ RMV2D.NavigationClient = function(options){
 			var pose = new ROSLIB.Pose({
 	          position : new ROSLIB.Vector3({
 	          	x : positionX,
-	          	y : positionY,
+	          	y : -positionY,
 	          	z : 0
 	          })
 	        });
@@ -383,4 +385,97 @@ RMV2D.NavigationClient = function(options){
 		}, 500);
 	});
 }
+
+RMV2D.HeatmapClient = function(options){
+	var that = this;
+	this.rootObject = options.rootObject; 
+
+	// Create a new heatmap based on new points
+	this.setData = function(points){
+		var heatmapIndex;
+		if(that.heatmap){
+			delete that.heatmap.canvasContainer;
+			heatmapIndex = that.rootObject.getChildIndex(that.heatmap);
+			that.rootObject.removeChild(that.heatmap);
+		}
+
+		that.heatmap = new RMV2D.Heatmap({
+			points: points
+		});
+
+		if(heatmapIndex != null){
+			that.rootObject.addChildAt(that.heatmap, heatmapIndex);
+		}else{
+			that.rootObject.addChild(that.heatmap);
+		}
+	}
+
+	// Clear the heatmap (remove it from the viewport)
+	this.clear = function(){
+		if(that.heatmap){
+			that.heatmap.canvas.remove();
+			that.rootObject.removeChild(that.heatmap);
+			delete that.heatmap;
+		}
+	}
+}
+
+RMV2D.Heatmap = function(options){
+	var that = this;
+	var points = options.points;
+	//The area to render around the outermost points so it doesn't appear to be cut off
+	var margin = 2;
+	var data = [];
+	// Transform point objects with x, y and val, to an array in the form of [[x, y, val], [x, y, val], ...]
+	for(i in points.data){
+		var point = [points.data[i].x, points.data[i].y, points.data[i].value];
+		data.push(point);
+	}
+
+	this.canvas = document.createElement("canvas");
+
+	// Get the minimum and maximum values of the x and y coordinates so a width/height can be made
+	//0: x, 1: y, 2: val
+	var minPointsX = Math.min.apply(Math, data.map(function(o){return o[0];}));
+	var maxPointsX = Math.max.apply(Math, data.map(function(o){return o[0];}));
+	var minPointsY = Math.min.apply(Math, data.map(function(o){return o[1];}));
+	var maxPointsY = Math.max.apply(Math, data.map(function(o){return o[1];}));
+
+	// Increment all values with the minimum value. If the minimum value is 10, all points get shifted down by -10. If the minimum value is -15, all points will be shifted up by 15.
+	for(var i = 0; i < data.length; i++){
+		data[i][0] -= minPointsX;
+		data[i][1] -= minPointsY;
+		data[i][0] += margin;
+		data[i][1] += margin;
+		data[i][0] *= 100;
+		data[i][1] *= 100;
+	}
+
+	this.canvas.width = (maxPointsX - minPointsX + margin*2)*100;
+	this.canvas.height = (maxPointsY - minPointsY + margin*2)*100;
+	this.canvas.id = "heatmapCanvas";
+	this.canvas.style.visibility = "hidden";
+
+	this.width = maxPointsX - minPointsX + margin*2;
+	this.height = maxPointsY - minPointsY + margin*2;
+
+	// The container has to be appended to the web page in order to draw on the canvas
+	document.body.appendChild(this.canvas);
+
+	var heatmapInstance = simpleheat("heatmapCanvas");
+	heatmapInstance.data(data);
+	heatmapInstance.max(points.max);
+	heatmapInstance.radius(25, 15);
+	heatmapInstance.draw();
+
+	var canvas = this.canvas;
+	createjs.Bitmap.call(this, canvas);
+	this.scaleX = 1/100;
+	this.scaleY = 1/100;
+	this.x = minPointsX - margin;
+	this.y = minPointsY - margin;
+	this.alpha = 0.2;
+	this.canvas.remove();
+}
+RMV2D.Heatmap.prototype.__proto__ = createjs.Bitmap.prototype;
 
