@@ -116,10 +116,10 @@ The HeatmapClient enables drawing a heatmap over the map. This object uses the *
 * **rootObject (required)**: The *scene* object of the *ROS2D.Viewer* object to display the heatmap in
 
 #### Functions 
-#####setData(options)
+##### setData(options)
 This function generates a heatmap with the given data and displays it in the Viewer. 
 
-#####clear()
+##### clear()
 This function clears the heatmap
 
 ###### Example
