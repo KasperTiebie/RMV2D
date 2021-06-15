@@ -10,6 +10,8 @@ RMV2D depends on:
 
 [roslibjs](https://github.com/RobotWebTools/roslibjs). The current supported version is 0.14.0. The current supported version can be found on the Robot Web Tools CDN: ([full](https://static.robotwebtools.org/roslibjs/0.14.0/roslib.js)) | ([min](https://static.robotwebtools.org/roslibjs/0.14.0/roslib.min.js))
 
+[simpleheat](https://github.com/mourner/simpleheat). This library is necessary when you want to use the HeatmapClient.
+
 ## Documentation
 
 ### RMV2D.Viewer
@@ -45,10 +47,10 @@ The OccupancyGridClient takes the ROS *nav_msgs/OccupancyGrid* messages and disp
 * **mapTopic (optional)**: The topic that the OccupancyGrid is published on. Defaults to *'/map'*
 
 #### Functions
-#####zoom(scale)
+##### zoom(scale)
 Zooms the viewport to the specified zoom level
 
-####pan(positionX, positionY)
+#### pan(positionX, positionY)
 Pans the viewport to the specified coordinates
 
 #### Example
