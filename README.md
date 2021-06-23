@@ -88,7 +88,7 @@ var poseClient = new RMV2D.PoseClient({
 
 
 ### RMV2D.NavigationClient
-The NavigationClient enables sending a marker to the robot to navigate to. 
+The NavigationClient enables sending a marker to the robot to navigate to. Setting a marker is done by double-clicking. 
 
 #### Options
 * **ros (required)**: The *ROSLIB.Ros* object
