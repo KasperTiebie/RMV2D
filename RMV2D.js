@@ -428,7 +428,7 @@ RMV2D.Heatmap = function(options){
 	var data = [];
 	// Transform point objects with x, y and val, to an array in the form of [[x, y, val], [x, y, val], ...]
 	for(i in points.data){
-		var point = [points.data[i].x, points.data[i].y, points.data[i].value];
+		var point = [points.data[i].x, -points.data[i].y, points.data[i].value];
 		data.push(point);
 	}
 
@@ -465,7 +465,7 @@ RMV2D.Heatmap = function(options){
 	var heatmapInstance = simpleheat("heatmapCanvas");
 	heatmapInstance.data(data);
 	heatmapInstance.max(points.max);
-	heatmapInstance.radius(25, 15);
+	heatmapInstance.radius(60, 40);
 	heatmapInstance.draw();
 
 	var canvas = this.canvas;
